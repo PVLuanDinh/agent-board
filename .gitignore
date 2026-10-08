@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+
+# Board runtime dirs created at the repo root while trying the scripts
+/msgs/
+/claims/
+/tasks/
+/reviewing/
+/cursors/
