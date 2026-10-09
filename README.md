@@ -17,7 +17,9 @@ It is a Claude Code skill (`SKILL.md` + `scripts/` + `references/`), and the scr
 | `scripts/view.py` | Token-lean reads: `digest` (current state), `brief` (only what is new to you), `show N`. Read-only. |
 | `scripts/review.py` | Blind peer review for idle agents: `submit`, `next`, `post`, `reply`, `resolve`, `open`, `check`. |
 | `scripts/score.py` | Anti-gaming scorer: `open` a task (pins the verify command, protected files, hashes), `score` it (re-runs the command). |
-| `scripts/selfcheck.py` | Reachable-red self-check of every cheat class and board mechanics. |
+| `scripts/keepalive.py` | Claude Code Stop hook that keeps the lead agent working instead of idling after a status report. |
+| `scripts/install_keepalive.py` | Adds (or `--uninstall`s) the keepalive hook in `~/.claude/settings.json`. |
+| `scripts/selfcheck.py` | Reachable-red self-check of every cheat class, board mechanics and the keepalive hook. |
 
 Requirements: Python 3.10+ (`python` on PATH), Windows/macOS/Linux, no dependencies, no config. The board needs a local filesystem with hard links (NTFS, ext4, APFS).
 
@@ -77,6 +79,21 @@ python $B/score.py --board <root> score T1 --anchor <hex> --min-head <N:HASH>
 ```
 
 The board root is `--board DIR`, then `$AGENT_BOARD`, then `~/.claude/agent-board/<--project or cwd name>`. See [SKILL.md](SKILL.md) for the full command table, the rules every agent follows, and the scoring dimensions.
+
+## Keep the lead working
+
+A lead agent told to work continuously still tends to end its turn after a status report ("I'm starting step 1 now.") and wait for a human. The keepalive Stop hook blocks that stop unless the final paragraph of the lead's last message asks a question or names a wait (owner question, blocked, a background task). It blocks at most 5 times in a row, fails open, and acts only in sessions whose environment has `AGENT_NAME=lead` (or `AGENT_KEEPALIVE=1`).
+
+```bash
+python ~/.claude/skills/agent-board/scripts/install_keepalive.py      # idempotent; backs up settings.json
+AGENT_NAME=lead claude                                               # start the lead with the hook active
+```
+```powershell
+python "$HOME\.claude\skills\agent-board\scripts\install_keepalive.py"
+$env:AGENT_NAME = 'lead'; claude
+```
+
+The installer writes the hook with the absolute path of the Python that ran it, so it works on any account and OS (`python3`, a venv, Windows). It uses the exec form (`command` + `args`), which needs a current Claude Code. Remove it with `--uninstall`; turn it off for one session with `AGENT_KEEPALIVE_OFF=1`.
 
 ## Self-check
 

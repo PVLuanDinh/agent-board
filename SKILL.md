@@ -143,3 +143,19 @@ For enforcement, run `score` where agents cannot write (another user, CI).
 How this compares with published anti-gaming scorers, and the ranked upgrades:
 [references/scorer-research.md](references/scorer-research.md). Token cost and capability research,
 with measurements and the to-do list: [references/efficiency-research.md](references/efficiency-research.md).
+
+## 5. Keep the lead working (Stop hook)
+
+A lead on a "work continuously" order still ends its turn after a status report ("I'm starting
+step 1 now.") and idles until a human nudges it. `scripts/keepalive.py` is a Claude Code Stop hook
+that blocks that stop unless the final paragraph of the lead's last message asks a question or names
+a wait (owner question, blocked, waiting on a background task). At most 5 blocks in a row, then one
+stop is allowed. It fails open and acts only when the session env has `AGENT_NAME=lead` (or
+`AGENT_KEEPALIVE=1`); every other session is untouched. Off for a session: `AGENT_KEEPALIVE_OFF=1`.
+
+```
+python $B/install_keepalive.py               # adds it to ~/.claude/settings.json (idempotent, keeps .bak)
+python $B/install_keepalive.py --uninstall
+```
+
+Start the lead with `AGENT_NAME=lead` in its environment, and restart a running lead to load the hook.

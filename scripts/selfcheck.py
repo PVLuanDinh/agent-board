@@ -431,8 +431,53 @@ def concurrent_writers(n_proc=4, n_each=25):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def keepalive_mechanics():
+    """keepalive.py (Stop hook) + install_keepalive.py: each case is a reachable red."""
+    import keepalive as K, install_keepalive as I
+    tmp = Path(tempfile.mkdtemp(prefix="agentboard-ka-"))
+    stall = "Next:\n1. Reload.\n\n**Still waiting on you:** question #2.\n\nI'm starting step 1 now."
+    run = lambda msg, sid="s1": K.decide({"session_id": sid, "last_assistant_message": msg}, tmp)
+    res = []
+    try:
+        res.append(("inactive unless AGENT_NAME=lead", not K.active({"AGENT_NAME": "G3"})
+                    and K.active({"AGENT_NAME": "lead"}) and not K.active({"AGENT_NAME": "lead", "AGENT_KEEPALIVE_OFF": "1"})))
+        res.append(("stall is blocked", (run("I'm starting step 1 now.") or {}).get("decision") == "block"))
+        res.append(("final-paragraph question allows stop", run("Confirm the plan?") is None))
+        res.append(("named background wait allows stop", run("Waiting on the battery to finish.") is None))
+        res.append(("mid-message status line does not excuse a stall", run(stall) is not None))
+        blocks = sum(run("Done. Next step queued.", "cap") is not None for _ in range(K.MAX_BLOCKS + 1))
+        res.append((f"cap: {K.MAX_BLOCKS} blocks then 1 allow", blocks == K.MAX_BLOCKS))
+        env = {**__import__("os").environ, "AGENT_NAME": "lead"}
+        p = subprocess.run([sys.executable, str(HERE / "keepalive.py")], env=env, capture_output=True,
+                           input=("﻿" + json.dumps({"session_id": "bom", "last_assistant_message": "Starting now."})).encode())
+        Path(tempfile.gettempdir(), "agent-keepalive-bom.count").unlink(missing_ok=True)
+        res.append(("hook process blocks on BOM-prefixed stdin", b'"block"' in p.stdout))
+        tr = tmp / "t.jsonl"
+        tr.write_text("\n".join(json.dumps(x) for x in [
+            {"type": "user", "message": {"content": "go"}},
+            {"type": "assistant", "message": {"content": [{"type": "text", "text": "I'll do it now."}]}},
+            {"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Bash"}]}}]) + "\n")
+        res.append(("transcript fallback finds last text", K.last_text({"transcript_path": str(tr)}) == "I'll do it now."))
+        st = tmp / "settings.json"
+        st.write_text(json.dumps({"hooks": {"Stop": [{"hooks": [{"type": "command", "command": "other"}]}]}}))
+        I.apply(st); I.apply(st)
+        cmds = [h for g in json.loads(st.read_text())["hooks"]["Stop"] for h in g["hooks"]]
+        res.append(("install is idempotent and keeps other hooks",
+                    len(cmds) == 2 and sum(I.is_ours(h) for h in cmds) == 1 and cmds[0]["command"] == "other"))
+        I.apply(st, uninstall=True)
+        cmds = [h for g in json.loads(st.read_text())["hooks"]["Stop"] for h in g["hooks"]]
+        res.append(("uninstall removes only ours", [h["command"] for h in cmds] == ["other"]))
+    except Exception as e:  # a crash is a FAIL
+        res.append((f"keepalive raised {type(e).__name__}: {e}", False))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    return res
+
+
 if __name__ == "__main__":
     bad = 0
+    for name, ok in keepalive_mechanics():
+        bad += not ok; print(f"{'PASS' if ok else 'FAIL'}  keepalive: {name}")
     for name in CASES:
         ok, detail = run_case(name); bad += not ok
         print(f"{'PASS' if ok else 'FAIL'}  {name:32s} {detail}")
