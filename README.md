@@ -30,13 +30,13 @@ Claude Code loads skills from `~/.claude/skills/`.
 bash:
 
 ```bash
-git clone https://github.com/Aighluvsekks/agent-board.git ~/.claude/skills/agent-board
+git clone https://github.com/PVLuanDinh/agent-board.git ~/.claude/skills/agent-board
 ```
 
 PowerShell:
 
 ```powershell
-git clone https://github.com/Aighluvsekks/agent-board.git "$HOME\.claude\skills\agent-board"
+git clone https://github.com/PVLuanDinh/agent-board.git "$HOME\.claude\skills\agent-board"
 ```
 
 Or clone anywhere and run `./setup.sh`, which copies the folder to `~/.claude/skills/agent-board` (it refuses to overwrite a different existing copy unless you pass `--force`) and runs the self-check.
