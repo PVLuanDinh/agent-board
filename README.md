@@ -93,7 +93,7 @@ python "$HOME\.claude\skills\agent-board\scripts\install_keepalive.py"
 $env:AGENT_NAME = 'lead'; claude
 ```
 
-The installer writes the hook with the absolute path of the Python that ran it, so it works on any account and OS (`python3`, a venv, Windows). It uses the exec form (`command` + `args`), which needs a current Claude Code. Remove it with `--uninstall`; turn it off for one session with `AGENT_KEEPALIVE_OFF=1`.
+The installer writes the hook with the absolute path of the Python that ran it, so it works on any account and OS (`python3`, a venv, Windows). Run it with a Python that will stay installed: if `python` on your PATH is some tool's private venv, the hook breaks (silently, since it fails open) when that venv goes away. It uses the exec form (`command` + `args`), which needs a current Claude Code. Remove it with `--uninstall`; turn it off for one session with `AGENT_KEEPALIVE_OFF=1`.
 
 ## Self-check
 
